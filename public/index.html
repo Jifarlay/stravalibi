@@ -233,24 +233,20 @@ footer{text-align:center;padding:2rem 1rem;font-size:12px;color:var(--text3);bor
     <div class="card-head"><div class="num">4</div><div class="card-title">Répartition de l'allure</div></div>
     <div class="tabs">
       <button class="tab active" id="tabAuto" onclick="setMode('auto')">Automatique (fatigue + pente)</button>
-      <button class="tab" id="tabKm" onclick="setMode('kmkm')">Par tranche de 10 km</button>
     </div>
     <div id="panelAuto">
       <div class="slider-wrap">
         <span class="slider-label">Impact pente</span>
-        <input type="range" id="slopeFactor" min="0" max="100" value="50" step="1" oninput="document.getElementById('slopeVal').textContent=this.value+'%'">
-        <span class="slider-val" id="slopeVal">50%</span>
+        <input type="range" id="slopeFactor" min="0" max="100" value="5" step="1" oninput="document.getElementById('slopeVal').textContent=this.value+'%'">
+        <span class="slider-val" id="slopeVal">5%</span>
       </div>
       <div class="slider-wrap">
         <span class="slider-label">Impact fatigue</span>
-        <input type="range" id="fatigueFactor" min="0" max="100" value="40" step="1" oninput="document.getElementById('fatigueVal').textContent=this.value+'%'">
-        <span class="slider-val" id="fatigueVal">40%</span>
+        <input type="range" id="fatigueFactor" min="0" max="100" value="5" step="1" oninput="document.getElementById('fatigueVal').textContent=this.value+'%'">
+        <span class="slider-val" id="fatigueVal">5%</span>
       </div>
       <p class="tip">Pente : ralentissement proportionnel au dénivelé. Fatigue : les derniers km sont progressivement plus lents.</p>
     </div>
-    <div id="panelKm" class="hidden">
-      <p class="tip" style="margin-bottom:10px">Saisis ton allure en min/km pour chaque tranche de 10 km.</p>
-      <div class="pace-grid" id="paceGrid"></div>
     </div>
   </div>
 
@@ -337,7 +333,7 @@ function setGpxData(data){
   document.getElementById('statsRow').classList.remove('hidden');
   document.getElementById('btnGen').disabled = false;
   document.getElementById('dlLink').classList.add('hidden');
-  buildPaceGrid(data.dist);
+  
   showMsg('');
 }
 
@@ -375,10 +371,10 @@ function loadFile(file){
   };r.readAsText(file);
 }
 
-function setMode(m){mode=m;document.getElementById('tabAuto').classList.toggle('active',m==='auto');document.getElementById('tabKm').classList.toggle('active',m==='kmkm');document.getElementById('panelAuto').classList.toggle('hidden',m!=='auto');document.getElementById('panelKm').classList.toggle('hidden',m!=='kmkm');}
+
 function setPause(v){pauseEnabled=v;document.getElementById('tabNoPause').classList.toggle('active',!v);document.getElementById('tabPause').classList.toggle('active',v);document.getElementById('pausePanel').classList.toggle('hidden',!v);if(v&&!document.querySelector('[id^="pkm-"]'))addPause();}
 function addPause(){const id=++pauseIdx,div=document.createElement('div');div.className='pause-item';div.id='pi-'+id;div.innerHTML=`<div><label>Position (km)</label><input type="number" id="pkm-${id}" min="0" step="0.1" placeholder="ex: 25.5"></div><div><label>Durée</label><div style="display:flex;gap:6px"><input type="number" id="ph-${id}" min="0" value="0" style="width:64px" placeholder="h"><input type="number" id="pm-${id}" min="0" max="59" value="30" style="width:64px" placeholder="min"></div></div><button class="btn-rm" onclick="document.getElementById('pi-${id}').remove()">×</button>`;document.getElementById('pauseList').appendChild(div);}
-function buildPaceGrid(dist){const g=document.getElementById('paceGrid');g.innerHTML='';const n=Math.ceil(dist/10);for(let i=0;i<n;i++){const d=document.createElement('div');d.className='pace-item';d.innerHTML=`<span class="pace-km">km ${Math.round(i*10)}–${Math.round(Math.min((i+1)*10,dist))}</span><input type="number" id="pace-${i}" min="1" max="90" step="0.1" value="${(5.5+i*0.15).toFixed(1)}"><span class="pace-unit">min/km</span>`;g.appendChild(d);}}
+
 function getPauses(){if(!pauseEnabled)return[];return Array.from(document.querySelectorAll('[id^="pkm-"]')).map(el=>{const id=el.id.split('-')[1],km=parseFloat(el.value),h=parseInt(document.getElementById('ph-'+id).value)||0,m=parseInt(document.getElementById('pm-'+id).value)||0;return{km,seconds:h*3600+m*60}}).filter(p=>!isNaN(p.km)&&p.seconds>0).sort((a,b)=>a.km-b.km);}
 
 function generate(){
@@ -399,7 +395,7 @@ function generate(){
       const sf=parseInt(document.getElementById('slopeFactor').value)/100,ff=parseInt(document.getElementById('fatigueFactor').value)/100;
       let weights=[];
       if(mode==='auto'){for(let i=0;i<n-1;i++){const g=segD[i]>0?(segDp[i]/(segD[i]*1000))*100:0;weights.push(segD[i]*(1+(g/10)*.5*sf)*(1+(cumDist[i]/dist)*ff));}}
-      else{const nc=Math.ceil(dist/10),pv=[];for(let i=0;i<nc;i++)pv.push(parseFloat(document.getElementById('pace-'+i).value)||6);for(let i=0;i<n-1;i++){const si=Math.min(Math.floor(cumDist[i]/10),pv.length-1),t=(cumDist[i]%10)/10,ni=Math.min(si+1,pv.length-1);weights.push(segD[i]*(pv[si]*(1-t)+pv[ni]*t)*60);}}
+      
       const totalW=weights.reduce((s,w)=>s+w,0),pauseMap={};
       pauses.forEach(p=>{let bi=0,bd=Infinity;for(let i=0;i<cumDist.length;i++){const d=Math.abs(cumDist[i]-p.km);if(d<bd){bd=d;bi=i;}}pauseMap[bi]=(pauseMap[bi]||0)+p.seconds;});
       bar.style.width='50%';

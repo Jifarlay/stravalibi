@@ -116,6 +116,24 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .btn-strava-oauth:hover:not(:disabled){background:#e03e00;transform:translateY(-1px)}
 .btn-strava-oauth:disabled{opacity:.35;cursor:not-allowed}
 footer{text-align:center;padding:2rem 1rem;font-size:12px;color:var(--text3);border-top:1px solid var(--border)}
+
+.city-form{display:flex;flex-direction:column;gap:12px}
+.city-input-row{display:flex;gap:8px}
+.city-input-row input{flex:1}
+.dist-slider-wrap{display:flex;flex-direction:column;gap:6px}
+.dist-slider-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text3)}
+.dist-display{text-align:center;font-size:28px;font-weight:700;color:var(--orange);line-height:1}
+.dist-display span{font-size:13px;color:var(--text2);font-weight:400;margin-left:4px}
+.btn-generate-city{width:100%;padding:12px;border:none;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--orange),#ff7a45);color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-generate-city:hover{opacity:.9;transform:translateY(-1px)}
+.btn-generate-city:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.city-progress{margin-top:10px}
+.city-progress-bar-wrap{height:3px;background:var(--bg4);border-radius:2px;overflow:hidden;margin-top:6px}
+.city-progress-bar{height:100%;background:linear-gradient(90deg,var(--orange),#ff7a45);width:0;transition:width .4s}
+.city-msg{font-size:12px;color:var(--text2);margin-top:4px}
+.city-result{background:var(--bg3);border-radius:var(--radius-sm);padding:12px;margin-top:10px;display:none}
+.city-result-stats{display:flex;gap:12px;font-size:13px}
+.city-result-stats b{color:var(--orange)}
 @media(max-width:520px){.stats,.presets{grid-template-columns:repeat(2,1fr)}.row2,.row3,.pace-grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -169,6 +187,7 @@ footer{text-align:center;padding:2rem 1rem;font-size:12px;color:var(--text3);bor
     <div class="cat-tabs">
       <button class="cat-tab active" id="catMarathon" onclick="setCat('marathon')">🏃 Marathons</button>
       <button class="cat-tab" id="catTrail" onclick="setCat('trail')">🏔 Trails</button>
+      <button class="cat-tab" id="catCity" onclick="setCat('city')">📍 Dans ta ville</button>
     </div>
 
     <!-- Marathons -->
@@ -258,6 +277,33 @@ footer{text-align:center;padding:2rem 1rem;font-size:12px;color:var(--text3);bor
         <div class="preset-time">⏱ 16h – 30h</div>
       </button>
     </div>
+
+    <!-- Dans ta ville -->
+    <div id="gridCity" class="hidden">
+      <div class="city-form">
+        <div class="city-input-row">
+          <input type="text" id="cityName" placeholder="Ville de départ (ex: Marseille, Lyon…)" style="font-size:14px">
+          <button class="btn-generate-city" id="btnGenerateCity" onclick="generateCityRoute()" style="width:auto;padding:10px 16px;font-size:13px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Générer
+          </button>
+        </div>
+        <div class="dist-slider-wrap">
+          <div class="dist-display" id="cityDistDisplay">10<span>km</span></div>
+          <input type="range" id="cityDist" min="2" max="100" value="10" step="1"
+            oninput="document.getElementById('cityDistDisplay').innerHTML=this.value+'<span>km</span>'">
+          <div class="dist-slider-labels"><span>2 km</span><span>100 km</span></div>
+        </div>
+        <div class="city-progress" id="cityProgress" style="display:none">
+          <div class="city-msg" id="cityMsg">Chargement…</div>
+          <div class="city-progress-bar-wrap"><div class="city-progress-bar" id="cityBar"></div></div>
+        </div>
+        <div class="city-result" id="cityResult">
+          <div class="city-result-stats" id="cityResultStats"></div>
+        </div>
+      </div>
+    </div>
+
 
     <div class="or-sep">ou charge ta propre trace</div>
 
@@ -411,10 +457,10 @@ function setGpxData(data){
 
 
 function setCat(cat){
-  document.getElementById('catMarathon').classList.toggle('active',cat==='marathon');
-  document.getElementById('catTrail').classList.toggle('active',cat==='trail');
-  document.getElementById('gridMarathon').classList.toggle('hidden',cat!=='marathon');
-  document.getElementById('gridTrail').classList.toggle('hidden',cat!=='trail');
+  ['marathon','trail','city'].forEach(c=>{
+    document.getElementById('cat'+c.charAt(0).toUpperCase()+c.slice(1)).classList.toggle('active',c===cat);
+    document.getElementById('grid'+c.charAt(0).toUpperCase()+c.slice(1)).classList.toggle('hidden',c!==cat);
+  });
 }
 
 function loadPreset(key){
@@ -553,6 +599,341 @@ function stravaConnect() {
     })
     .catch(() => showMsg('Erreur : génère d\'abord ton fichier.', true));
 }
+// ============================================================
+// MODULE "DANS TA VILLE" — Stravalibi
+// Génère une boucle de course sur les vraies rues OSM
+// ============================================================
+
+const CityRunner = {
+
+  // Rayon Overpass selon distance cible (en mètres)
+  getRadius(distKm) {
+    // On veut un rayon qui couvre ~1.5x le rayon théorique de la boucle
+    // Rayon théorique d'une boucle de D km = D / (2*PI) km
+    const theoreticalRadius = (distKm / (2 * Math.PI)) * 1000;
+    return Math.max(600, Math.min(theoreticalRadius * 1.8, 12000));
+  },
+
+  // Haversine en mètres
+  dist(a, b) {
+    const R = 6371000, r = Math.PI/180;
+    const dl = (b[0]-a[0])*r, dn = (b[1]-a[1])*r;
+    const x = Math.sin(dl/2)**2 + Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dn/2)**2;
+    return R*2*Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+  },
+
+  // Bearing entre deux points (degrés)
+  bearing(a, b) {
+    const r = Math.PI/180;
+    const dlat = (b[0]-a[0])*r, dlon = (b[1]-a[1])*r;
+    const y = Math.sin(dlon)*Math.cos(b[0]*r);
+    const x = Math.cos(a[0]*r)*Math.sin(b[0]*r) - Math.sin(a[0]*r)*Math.cos(b[0]*r)*Math.cos(dlon);
+    return (Math.atan2(y,x)*180/Math.PI + 360) % 360;
+  },
+
+  // Différence angulaire signée (-180 à +180)
+  angleDiff(a, b) {
+    let d = ((b - a) + 540) % 360 - 180;
+    return d;
+  },
+
+
+  // Helper fetch avec timeout
+  async fetchTimeout(url, options={}, timeoutMs=20000) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...options, signal: ctrl.signal });
+      clearTimeout(timer);
+      return res;
+    } catch(e) {
+      clearTimeout(timer);
+      if (e.name === 'AbortError') throw new Error('Délai dépassé — réessaie');
+      throw new Error('Erreur réseau : ' + e.message);
+    }
+  },
+
+  // 1. Géocoder via proxy Netlify Function
+  async geocode(cityName) {
+    const res = await this.fetchTimeout(
+      `/.netlify/functions/geocode?q=${encodeURIComponent(cityName)}`,
+      {}, 10000
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      throw new Error(err.error || `Ville "${cityName}" introuvable`);
+    }
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    return [data.lat, data.lon];
+  },
+
+  // 2. Récupérer les rues OSM via Overpass
+  async fetchStreets(lat, lon, radius) {
+    const query = `[out:json][timeout:25];(way["highway"~"^(footway|path|pedestrian|living_street|residential|tertiary|secondary|primary|unclassified|service|cycleway|track)$"]["access"!="private"]["area"!="yes"](around:${radius},${lat},${lon}););out body;>;out skel qt;`;
+    const res = await this.fetchTimeout('/.netlify/functions/overpass', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query })
+    }, 30000);
+    if (!res.ok) throw new Error('Erreur chargement des rues');
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    return data.elements || [];
+  },
+
+  // 3. Construire le graphe des rues
+  buildGraph(elements) {
+    const nodes = {};
+    const graph = {}; // node_id -> [{nodeId, lat, lon, wayId}]
+
+    elements.forEach(e => {
+      if (e.type === 'node') {
+        nodes[e.id] = [e.lat, e.lon];
+      }
+    });
+
+    elements.forEach(e => {
+      if (e.type === 'way' && e.nodes) {
+        for (let i = 0; i < e.nodes.length - 1; i++) {
+          const a = e.nodes[i], b = e.nodes[i+1];
+          if (!nodes[a] || !nodes[b]) continue;
+          const segDist = this.dist(nodes[a], nodes[b]);
+          if (segDist < 2) continue; // ignorer segments trop courts
+
+          if (!graph[a]) graph[a] = [];
+          if (!graph[b]) graph[b] = [];
+          graph[a].push({ id: b, pos: nodes[b], dist: segDist, wayId: e.id });
+          graph[b].push({ id: a, pos: nodes[a], dist: segDist, wayId: e.id });
+        }
+      }
+    });
+
+    return { nodes, graph };
+  },
+
+  // 4. Trouver le noeud le plus proche d'un point lat/lon
+  nearestNode(lat, lon, nodes, graph) {
+    let best = null, bestDist = Infinity;
+    for (const id in nodes) {
+      if (!graph[id]) continue; // ignorer noeuds isolés
+      const d = this.dist([lat, lon], nodes[id]);
+      if (d < bestDist) { bestDist = d; best = id; }
+    }
+    return best;
+  },
+
+  // 5. Algorithme de boucle
+  // Stratégie: avancer en favorisant la direction qui s'éloigne du départ
+  // puis quand on a parcouru ~70% de la distance, favoriser le retour
+  buildLoop(startId, graph, nodes, targetDist) {
+    const minDist = targetDist * 0.7;
+    const maxDist = targetDist * 1.3;
+    const startPos = nodes[startId];
+
+    let current = startId;
+    let totalDist = 0;
+    let path = [startId];
+    const visited = new Set([startId]);
+    let prevBearing = null;
+    let phase = 'explore'; // 'explore' -> 'return'
+    const maxSteps = 2000;
+
+    for (let step = 0; step < maxSteps; step++) {
+      const neighbors = graph[current] || [];
+      if (!neighbors.length) break;
+
+      // Distance restante pour atteindre min
+      const distToStart = this.dist(nodes[current], startPos);
+      const remaining = targetDist - totalDist;
+
+      // Changer de phase si on a parcouru 60% et qu'on s'est éloigné
+      if (phase === 'explore' && totalDist > targetDist * 0.55) {
+        phase = 'return';
+      }
+
+      // Vérifier si on peut fermer la boucle proprement
+      if (totalDist >= minDist && distToStart < targetDist * 0.08) {
+        // On est proche du départ avec assez de distance — on ferme
+        path.push(startId);
+        break;
+      }
+
+      // Scorer les voisins
+      const currentBearing = prevBearing;
+      const bearingToStart = this.bearing(nodes[current], startPos);
+
+      let candidates = neighbors.map(n => {
+        const nb = this.bearing(nodes[current], n.pos);
+        let score = 0;
+
+        // Pénaliser le demi-tour
+        if (currentBearing !== null) {
+          const turn = Math.abs(this.angleDiff(currentBearing, nb));
+          if (turn > 150) score -= 100; // demi-tour
+          else if (turn < 30) score += 5; // tout droit = léger bonus
+        }
+
+        if (phase === 'explore') {
+          // Favoriser s'éloigner du départ
+          const awayFromStart = this.angleDiff(bearingToStart, nb);
+          if (Math.abs(awayFromStart) > 90) score += 20; // s'éloigner
+          // Variété — pénaliser déjà visité légèrement
+          if (visited.has(n.id)) score -= 15;
+        } else {
+          // Phase retour: favoriser aller vers le départ
+          const towardStart = Math.abs(this.angleDiff(bearingToStart, nb));
+          score += (180 - towardStart) / 10; // +18 si droit vers départ
+          // Toujours pénaliser déjà visité mais moins
+          if (visited.has(n.id)) score -= 8;
+          // Pénaliser si ça nous éloigne trop (distToStart + n.dist > remaining*1.2)
+          const newDistToStart = this.dist(n.pos, startPos);
+          if (newDistToStart > distToStart + 50 && totalDist + n.dist > targetDist * 0.9) {
+            score -= 30;
+          }
+        }
+
+        // Bonus chemins piétons / petites rues (moins de trafic)
+        // (pas d'info type ici mais on pourrait l'ajouter)
+
+        return { ...n, score };
+      });
+
+      // Trier par score
+      candidates.sort((a, b) => b.score - a.score);
+
+      // Prendre le meilleur candidat qui ne fait pas dépasser maxDist
+      let chosen = null;
+      for (const c of candidates) {
+        if (totalDist + c.dist <= maxDist + 200) { // petite tolérance
+          chosen = c;
+          break;
+        }
+      }
+
+      if (!chosen) {
+        // Dernier recours: prendre n'importe quel voisin
+        chosen = candidates[0];
+        if (!chosen) break;
+      }
+
+      prevBearing = this.bearing(nodes[current], chosen.pos);
+      totalDist += chosen.dist;
+      visited.add(chosen.id);
+      path.push(chosen.id);
+      current = chosen.id;
+
+      // Si on dépasse largement maxDist, forcer le retour direct
+      if (totalDist > maxDist) break;
+    }
+
+    return { path, totalDist };
+  },
+
+  // 6. Fonction principale
+  async generate(cityName, distKm, onProgress) {
+    const targetDist = distKm * 1000; // en mètres
+
+    onProgress('Localisation de ' + cityName + '…', 10);
+    const [lat, lon] = await this.geocode(cityName);
+
+    const radius = this.getRadius(distKm);
+    onProgress(`Chargement des rues (rayon ${Math.round(radius/100)/10} km)…`, 25);
+    const elements = await this.fetchStreets(lat, lon, radius);
+
+    onProgress('Construction du réseau…', 50);
+    const { nodes, graph } = this.buildGraph(elements);
+
+    const nodeCount = Object.keys(graph).length;
+    if (nodeCount < 10) throw new Error('Pas assez de rues trouvées dans cette zone');
+
+    onProgress('Calcul de la boucle…', 65);
+    const startId = this.nearestNode(lat, lon, nodes, graph);
+    const { path, totalDist } = this.buildLoop(startId, graph, nodes, targetDist);
+
+    if (path.length < 5) throw new Error('Impossible de construire une boucle dans cette zone');
+
+    onProgress('Génération de la trace…', 85);
+
+    // Construire les coords GPX
+    const coords = path.map(id => {
+      const pos = nodes[id];
+      return [pos[0], pos[1], 0]; // altitude 0 (pas dispo via Overpass simple)
+    });
+
+    const finalDist = totalDist / 1000;
+    onProgress('Trace prête !', 100);
+
+    return {
+      coords,
+      dist: Math.round(finalDist * 10) / 10,
+      dp: 0,
+      dm: 0,
+      name: `Course à ${cityName} ${Math.round(finalDist * 10)/10}km`,
+      actType: 'running',
+      nodeCount,
+      startLat: lat,
+      startLon: lon
+    };
+  }
+};
+
+
+async function generateCityRoute() {
+  const city = document.getElementById('cityName').value.trim();
+  if (!city) { document.getElementById('cityName').focus(); return; }
+
+  const distKm = parseInt(document.getElementById('cityDist').value);
+  const btn = document.getElementById('btnGenerateCity');
+  btn.disabled = true;
+
+  const prog = document.getElementById('cityProgress');
+  const bar = document.getElementById('cityBar');
+  const msg = document.getElementById('cityMsg');
+  const result = document.getElementById('cityResult');
+  prog.style.display = 'block';
+  result.style.display = 'none';
+
+  try {
+    const gpxData = await CityRunner.generate(city, distKm, (text, pct) => {
+      msg.textContent = text;
+      bar.style.width = pct + '%';
+    });
+
+    // Charger dans Stravalibi comme une trace normale
+    setGpxData(gpxData);
+
+    // Déselectionner les presets
+    Object.keys(PRESETS).forEach(k=>{
+      const el=document.getElementById('preset'+k.charAt(0).toUpperCase()+k.slice(1));
+      if(el) el.classList.remove('active');
+    });
+
+    // Afficher résultat
+    document.getElementById('cityResultStats').innerHTML =
+      `✓ Boucle générée : <b>${gpxData.dist} km</b> · <b>${gpxData.coords.length}</b> points GPS · départ ${city}`;
+    result.style.display = 'block';
+
+    // Mettre le nom dans la drop zone
+    const dt = document.getElementById('dropText');
+    dt.textContent = gpxData.name;
+    dt.classList.add('filename');
+
+    showMsg(`✓ Boucle de ${gpxData.dist} km générée à ${city}`, false, true);
+
+  } catch(err) {
+    console.error('CityRunner error:', err);
+    const errMsg = err.message || 'Erreur réseau — vérifie ta connexion';
+    msg.textContent = '❌ ' + errMsg;
+    bar.style.width = '0';
+    result.style.display = 'block';
+    document.getElementById('cityResultStats').innerHTML = '❌ ' + errMsg;
+    showMsg('Erreur : ' + errMsg, true);
+  }
+
+  btn.disabled = false;
+}
+
 </script>
 </body>
 </html>

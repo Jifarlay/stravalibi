@@ -670,7 +670,7 @@ const CityRunner = {
 
   // 2. Récupérer les rues OSM via Overpass
   async fetchStreets(lat, lon, radius) {
-    const query = `[out:json][timeout:25];(way["highway"~"^(footway|path|pedestrian|living_street|residential|tertiary|secondary|primary|unclassified|service|cycleway|track)$"]["access"!="private"]["area"!="yes"](around:${radius},${lat},${lon}););out body;>;out skel qt;`;
+    const query = `[out:json][timeout:20];(way["highway"~"^(footway|path|pedestrian|residential|tertiary|secondary|primary|unclassified|cycleway)$"]["access"!="private"]["area"!="yes"](around:${Math.min(radius,5000)},${lat},${lon}););out body;>;out skel qt;`;
     const res = await this.fetchTimeout('/.netlify/functions/overpass', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

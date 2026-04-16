@@ -138,23 +138,8 @@ footer{text-align:center;padding:2rem 1rem;font-size:12px;color:var(--text3);bor
 .city-result-stats b{color:var(--orange)}
 
 .map-section{margin-top:14px;display:none;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border2)}
-#traceMap{height:280px;width:100%;background:var(--bg3)}
-.strava-summary{background:linear-gradient(135deg,#1a1a1a,#111);border:1px solid #333;border-radius:var(--radius-sm);margin-top:10px;overflow:hidden;display:none}
-.strava-summary-header{background:linear-gradient(135deg,#FC4C02,#e03e00);padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
-.strava-summary-header .activity-type{font-size:11px;font-weight:700;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.1em}
-.strava-summary-header .activity-name{font-size:15px;font-weight:700;color:#fff;margin-top:2px}
-.strava-summary-header .strava-logo-sm{opacity:.9}
-.strava-stats-grid{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid #2a2a2a}
-.strava-stat{padding:14px 12px;text-align:center;border-right:1px solid #2a2a2a}
-.strava-stat:last-child{border-right:none}
-.strava-stat-val{font-size:22px;font-weight:700;color:#fff;line-height:1}
-.strava-stat-unit{font-size:11px;color:#FC4C02;font-weight:600;margin-top:2px}
-.strava-stat-lbl{font-size:10px;color:#666;margin-top:2px;text-transform:uppercase;letter-spacing:.05em}
-.strava-map-preview{position:relative;height:160px;background:#1a1a1a;overflow:hidden}
-.strava-trace-svg{width:100%;height:100%}
-.strava-footer{padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
-.strava-footer-date{font-size:12px;color:#666}
-.strava-footer-badge{font-size:11px;color:#FC4C02;font-weight:600;background:rgba(252,76,2,.1);padding:3px 8px;border-radius:10px}
+#traceMap{height:320px;width:100%;background:var(--bg3)}
+
 @media(max-width:520px){.stats,.presets{grid-template-columns:repeat(2,1fr)}.row2,.row3,.pace-grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -350,14 +335,6 @@ footer{text-align:center;padding:2rem 1rem;font-size:12px;color:var(--text3);bor
       <div class="map-section" id="mapSection">
         <div id="traceMap"></div>
       </div>
-
-      <!-- Résumé style Strava -->
-      <div class="strava-summary" id="stravaSummary">
-        <div class="strava-summary-header">
-          <div>
-            <div class="activity-type" id="sumType">Trail Running</div>
-            <div class="activity-name" id="sumName">—</div>
-          </div>
           <div class="strava-logo-sm">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0 4 13.828h4.17"/></svg>
           </div>
@@ -1000,9 +977,7 @@ function showPreview(gpxData) {
 
   const coords = gpxData.coords;
   document.getElementById('mapSection').style.display = 'block';
-  document.getElementById('stravaSummary').style.display = 'block';
 
-  // ── Carte Leaflet ──
   const latLngs = coords.map(c => [c[0], c[1]]);
 
   if (!leafletMap) {
@@ -1015,84 +990,19 @@ function showPreview(gpxData) {
   if (leafletLayer) { leafletMap.removeLayer(leafletLayer); }
 
   leafletLayer = L.polyline(latLngs, {
-    color: '#FC4C02', weight: 3, opacity: 0.9
+    color: '#FC4C02', weight: 3.5, opacity: 0.95
   }).addTo(leafletMap);
 
-  // Marqueurs départ/arrivée
-  const startIcon = L.divIcon({ className: '', html: '<div style="width:12px;height:12px;background:#FC4C02;border:2px solid #fff;border-radius:50%;"></div>', iconSize:[12,12], iconAnchor:[6,6] });
+  const startIcon = L.divIcon({ className: '', html: '<div style="width:12px;height:12px;background:#FC4C02;border:2px solid #fff;border-radius:50%;box-shadow:0 0 4px rgba(252,76,2,.6)"></div>', iconSize:[12,12], iconAnchor:[6,6] });
   const endIcon = L.divIcon({ className: '', html: '<div style="width:12px;height:12px;background:#fff;border:2px solid #FC4C02;border-radius:50%;"></div>', iconSize:[12,12], iconAnchor:[6,6] });
   L.marker(latLngs[0], { icon: startIcon }).addTo(leafletMap);
   L.marker(latLngs[latLngs.length-1], { icon: endIcon }).addTo(leafletMap);
 
-  leafletMap.fitBounds(leafletLayer.getBounds(), { padding: [20, 20] });
-
-  // ── Résumé Strava ──
-  // Stats
-  document.getElementById('sumName').textContent = gpxData.name || 'Mon activité';
-  document.getElementById('sumType').textContent = (gpxData.actType || 'running').replace('_',' ').toUpperCase();
-  document.getElementById('sumDist').textContent = gpxData.dist ? gpxData.dist.toFixed(1) : '—';
-  document.getElementById('sumDp').textContent = gpxData.dp ? Math.round(gpxData.dp) : '0';
-
-  // Allure estimée depuis durée si dispo, sinon calcul type
-  const dH = parseInt(document.getElementById('durH').value)||0;
-  const dM = parseInt(document.getElementById('durM').value)||0;
-  const dS = parseInt(document.getElementById('durS').value)||0;
-  const totalMin = dH*60 + dM + dS/60;
-  if (totalMin > 0 && gpxData.dist > 0) {
-    const paceMin = totalMin / gpxData.dist;
-    const pm = Math.floor(paceMin);
-    const ps = Math.round((paceMin - pm) * 60);
-    document.getElementById('sumPace').textContent = pm + "'" + String(ps).padStart(2,'0') + '"';
-  } else {
-    document.getElementById('sumPace').textContent = '—';
-  }
-
-  // Date
-  const dateVal = document.getElementById('startDate').value;
-  const timeVal = document.getElementById('startTime').value;
-  if (dateVal) {
-    const d = new Date(dateVal + 'T' + (timeVal||'00:00'));
-    document.getElementById('sumDate').textContent = d.toLocaleDateString('fr-FR', {weekday:'long',day:'numeric',month:'long',year:'numeric'}) + ' · ' + (timeVal||'');
-  }
-
-  // ── Mini carte SVG style Strava ──
-  const lats = coords.map(c=>c[0]);
-  const lons = coords.map(c=>c[1]);
-  const minLat=Math.min(...lats), maxLat=Math.max(...lats);
-  const minLon=Math.min(...lons), maxLon=Math.max(...lons);
-  const ranLat = maxLat-minLat || 0.001;
-  const ranLon = maxLon-minLon || 0.001;
-  const W=400, H=160, pad=16;
-  const scale = Math.min((W-pad*2)/ranLon, (H-pad*2)/ranLat);
-
-  // Sous-échantillonner pour SVG (max 300 points)
-  const step = Math.max(1, Math.floor(coords.length/300));
-  const pts = [];
-  for (let i=0; i<coords.length; i+=step) {
-    const x = pad + (coords[i][1]-minLon)*scale;
-    const y = H - pad - (coords[i][0]-minLat)*scale;
-    pts.push(x.toFixed(1)+','+y.toFixed(1));
-  }
-
-  document.getElementById('stravaPoly').setAttribute('points', pts.join(' '));
-
-  // Marqueurs SVG
-  const sx = pad + (coords[0][1]-minLon)*scale;
-  const sy = H - pad - (coords[0][0]-minLat)*scale;
-  const ex = pad + (coords[coords.length-1][1]-minLon)*scale;
-  const ey = H - pad - (coords[coords.length-1][0]-minLat)*scale;
-  document.getElementById('svgStart').setAttribute('cx', sx.toFixed(1));
-  document.getElementById('svgStart').setAttribute('cy', sy.toFixed(1));
-  document.getElementById('svgEnd').setAttribute('cx', ex.toFixed(1));
-  document.getElementById('svgEnd').setAttribute('cy', ey.toFixed(1));
+  leafletMap.fitBounds(leafletLayer.getBounds(), { padding: [24, 24] });
 }
 
 
-// Recalculer allure quand durée change
-['durH','durM','durS'].forEach(id => {
-  document.getElementById(id).addEventListener('input', () => {
-    if(gpxData) showPreview(gpxData);
-  });
+
 });
 </script>
 </body>

@@ -15,8 +15,7 @@
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0}
 .hero{background:linear-gradient(135deg,#1a0a00 0%,#2d1200 40%,#1a0a00 100%);padding:3rem 1rem 2.5rem;text-align:center;border-bottom:1px solid #3a1800;position:relative;overflow:hidden}
-.hero::before{content:'';position:absolute;top:-80px;left:50%;transform:translateX(-50%);width:500px;height:500px;background:radial-gradient(circle,rgba(252,76,2,.15) 0%,transparent 70%);pointer-events:none}
-.logo{display:inline-flex;align-items:center;gap:12px;margin-bottom:1.5rem}
+.hero::before{content:'';position:absolute;top:-80px;left:50%;transform:translateX(-50%);width:500px;height:500px;background:radial-gradient(circle,rgba(252,76,2,.15) 0%,transparent 70%);align-items:center;gap:12px;margin-bottom:1.5rem}
 .logo-icon{width:52px;height:52px;background:var(--orange);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .logo-name .brand{font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1}
 .logo-name .brand em{color:var(--orange);font-style:normal}
@@ -114,7 +113,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .ad-inner{max-width:728px;margin:0 auto;min-height:90px;display:flex;align-items:center;justify-content:center}
 .btn-strava-oauth{width:100%;padding:14px;border:none;border-radius:var(--radius-sm);background:#FC4C02;color:#fff;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s}
 .btn-strava-oauth:hover:not(:disabled){background:#e03e00;transform:translateY(-1px)}
-.btn-strava-oauth:disabled{opacity:.35;cursor:not-allowed}.btn-strava-oauth.locked{opacity:.35;cursor:not-allowed;pointer-events:none}
+.btn-strava-oauth:disabled{opacity:.35;cursor:not-allowed}.btn-strava-oauth.locked{opacity:.35;cursor:not-allowed}
 footer{text-align:center;padding:2rem 1rem;font-size:12px;color:var(--text3);border-top:1px solid var(--border)}
 
 .city-form{display:flex;flex-direction:column;gap:12px}

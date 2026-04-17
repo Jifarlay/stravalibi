@@ -114,7 +114,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .ad-inner{max-width:728px;margin:0 auto;min-height:90px;display:flex;align-items:center;justify-content:center}
 .btn-strava-oauth{width:100%;padding:14px;border:none;border-radius:var(--radius-sm);background:#FC4C02;color:#fff;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s}
 .btn-strava-oauth:hover:not(:disabled){background:#e03e00;transform:translateY(-1px)}
-.btn-strava-oauth:disabled{opacity:.35;cursor:not-allowed}
+.btn-strava-oauth:disabled{opacity:.35;cursor:not-allowed}.btn-strava-oauth.locked{opacity:.35;cursor:not-allowed;pointer-events:none}
 footer{text-align:center;padding:2rem 1rem;font-size:12px;color:var(--text3);border-top:1px solid var(--border)}
 
 .city-form{display:flex;flex-direction:column;gap:12px}
@@ -286,11 +286,11 @@ footer{text-align:center;padding:2rem 1rem;font-size:12px;color:var(--text3);bor
       <div><div class="card-title">Envoyer directement sur Strava</div><div style="font-size:12px;color:var(--text2);margin-top:2px">Connexion sécurisée — on ne stocke rien</div></div>
     </div>
     <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">Génère ton fichier ci-dessus, puis clique pour l'envoyer directement sur ton compte Strava.</p>
-    <button class="btn-strava-oauth" id="btnStrava" onclick="stravaConnect()" disabled>
+    <button class="btn-strava-oauth locked" id="btnStrava" onclick="stravaConnect()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0 4 13.828h4.17"/></svg>
       Connecter Strava &amp; envoyer l'activité
     </button>
-    <p class="tip" style="margin-top:10px;text-align:center">Génère d'abord ton fichier pour activer ce bouton</p>
+    <p class="tip" style="margin-top:10px;text-align:center"><span id='stravaHint'>Génère d'abord ton fichier pour activer ce bouton</span></p>
   </div>
 
   <!-- FOOTER -->
@@ -433,7 +433,7 @@ function generate(){
       link.href=url;link.download=gpxData.name+'_stravalibi.gpx';link.classList.remove('hidden');
       const fmt=d=>d.toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
       showMsg(`✓ Alibi prêt ! Départ ${fmt(new Date(startMs))} → Arrivée ${fmt(new Date(startMs+totalS*1000))}`,false,true);
-      document.getElementById('btnStrava').disabled=false;
+      document.getElementById('btnStrava').classList.remove('locked');const sh=document.getElementById('stravaHint');if(sh)sh.style.display='none';
       window._lastGpxBlob=blob;
       btn.disabled=false;
     }catch(err){showMsg('Erreur : '+err.message,true);btn.disabled=false;bar.style.width='0';}
@@ -443,6 +443,7 @@ function generate(){
 function showMsg(t,err=false,ok=false){const el=document.getElementById('msg');el.textContent=t;el.className='msg'+(err?' err':ok?' ok':'');}
 
 function stravaConnect() {
+  if (document.getElementById('btnStrava').classList.contains('locked')) return;
   if (!gpxData) return;
 
   // Reconstruire le GPX depuis les données en mémoire

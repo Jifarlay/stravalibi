@@ -378,7 +378,7 @@ function loadFile(file){
       pts.forEach(pt=>{const el=pt.querySelector('ele');coords.push([parseFloat(pt.getAttribute('lat')),parseFloat(pt.getAttribute('lon')),el?parseFloat(el.textContent):0])});
       let dist=0,dp=0,dm=0;
       for(let i=0;i<coords.length-1;i++){dist+=hav(coords[i],coords[i+1]);const da=coords[i+1][2]-coords[i][2];if(da>0)dp+=da;else dm-=da;}
-      Object.keys(PRESETS).forEach(k=>{const el=document.getElementById('preset'+k.charAt(0).toUpperCase()+k.slice(1));if(el)el.classList.remove('active');});
+      ['utmb','paris'].forEach(k=>document.getElementById('preset'+k.charAt(0).toUpperCase()+k.slice(1)).classList.remove('active'));
       const dt=document.getElementById('dropText');dt.textContent=file.name;dt.classList.add('filename');
       setGpxData({coords,dist,dp,dm,name:file.name.replace(/\.gpx$/i,'')});
     }catch(err){showMsg('Erreur : '+err.message,true);}
@@ -428,10 +428,13 @@ function generate(){
       }
       out.push('    </trkseg>','  </trk>','</gpx>');
       bar.style.width='100%';
-      const blob=new Blob([out.join('\n')],{type:'application/gpx+xml'}),url=URL.createObjectURL(blob),link=document.getElementById('dlLink');
+      const blob=new Blob([out.join('
+')],{type:'application/gpx+xml'}),url=URL.createObjectURL(blob),link=document.getElementById('dlLink');
       link.href=url;link.download=gpxData.name+'_stravalibi.gpx';link.classList.remove('hidden');
       const fmt=d=>d.toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
       showMsg(`✓ Alibi prêt ! Départ ${fmt(new Date(startMs))} → Arrivée ${fmt(new Date(startMs+totalS*1000))}`,false,true);
+      document.getElementById('btnStrava').disabled=false;
+      window._lastGpxBlob=blob;
       btn.disabled=false;
     }catch(err){showMsg('Erreur : '+err.message,true);btn.disabled=false;bar.style.width='0';}
   },60);

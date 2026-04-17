@@ -1,7 +1,10 @@
+<!DOCTYPE html>
+<html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Stravalibi — Ton alibi pour Strava</title>
+<meta name="description" content="T'as oublié de lancer ta montre ? Génère un fichier GPX d'activité pour Strava en quelques clics.">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
@@ -16,6 +19,7 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0}
 .hero{background:linear-gradient(135deg,#1a0a00 0%,#2d1200 40%,#1a0a00 100%);padding:3rem 1rem 2.5rem;text-align:center;border-bottom:1px solid #3a1800;position:relative;overflow:hidden}
 .hero::before{content:'';position:absolute;top:-80px;left:50%;transform:translateX(-50%);width:500px;height:500px;background:radial-gradient(circle,rgba(252,76,2,.15) 0%,transparent 70%);align-items:center;gap:12px;margin-bottom:1.5rem}
+.logo{display:inline-flex;align-items:center;gap:12px;text-decoration:none;margin-bottom:16px}
 .logo-icon{width:52px;height:52px;background:var(--orange);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .logo-name .brand{font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1}
 .logo-name .brand em{color:var(--orange);font-style:normal}
@@ -147,7 +151,7 @@ footer{text-align:center;padding:2rem 1rem;font-size:12px;color:var(--text3);bor
     <div class="logo-icon"><svg width="34" height="34" viewBox="0 0 34 34" fill="none"><rect x="3" y="12" width="5" height="11" rx="2" fill="white"/><rect x="26" y="12" width="5" height="11" rx="2" fill="white"/><rect x="6" y="17" width="22" height="8" rx="2" fill="white"/><rect x="7" y="12" width="20" height="6" rx="2" fill="rgba(255,255,255,0.6)"/><rect x="8" y="24" width="3" height="4" rx="1" fill="white"/><rect x="23" y="24" width="3" height="4" rx="1" fill="white"/><rect x="8" y="18" width="8" height="6" rx="1.5" fill="rgba(255,255,255,0.3)"/><rect x="18" y="18" width="8" height="6" rx="1.5" fill="rgba(255,255,255,0.3)"/></svg></div>
     <div class="logo-name"><div class="brand">Strava<em>libi</em></div><div class="tagline">ton alibi pour Strava</div></div>
   </div>
-  <h1>T'as oublié de lancer<br>ta <em>montre ?</em></h1>
+  <h1>T'as oublié de lancer<br>ta <em>montre&nbsp;?</em></h1>
   <p class="hero-sub">Charge ta trace GPX, dis-nous le temps que t'as mis, et génère ton fichier d'activité pour Strava. Aucune preuve de canapé.</p>
   <div class="steps-row">
     <div class="step-pill"><span class="dot">1</span>Choisis ta trace</div><span class="arr">→</span>
@@ -159,7 +163,6 @@ footer{text-align:center;padding:2rem 1rem;font-size:12px;color:var(--text3);bor
 
 <div class="main">
 
-  <!-- CARD 1 -->
   <div class="card">
     <div class="card-head"><div class="num">1</div><div class="card-title">Ta trace GPX</div></div>
     <div class="cat-tabs">
@@ -221,7 +224,6 @@ footer{text-align:center;padding:2rem 1rem;font-size:12px;color:var(--text3);bor
     </div>
   </div>
 
-  <!-- CARDS 2+3 -->
   <div class="row2">
     <div class="card">
       <div class="card-head"><div class="num">2</div><div class="card-title">Départ &amp; activité</div></div>
@@ -247,7 +249,6 @@ footer{text-align:center;padding:2rem 1rem;font-size:12px;color:var(--text3);bor
     </div>
   </div>
 
-  <!-- CARDS 4+5 -->
   <div class="row2">
     <div class="card">
       <div class="card-head"><div class="num">4</div><div class="card-title">Allure</div></div>
@@ -269,7 +270,6 @@ footer{text-align:center;padding:2rem 1rem;font-size:12px;color:var(--text3);bor
     </div>
   </div>
 
-  <!-- CARD 6 -->
   <div class="card">
     <div class="card-head"><div class="num">6</div><div class="card-title">Générer &amp; télécharger</div></div>
     <button class="btn-gen" id="btnGen" onclick="generate()" disabled>Générer mon alibi</button>
@@ -278,7 +278,6 @@ footer{text-align:center;padding:2rem 1rem;font-size:12px;color:var(--text3);bor
     <a id="dlLink" class="hidden btn-dl">⬇ Télécharger le fichier .gpx</a>
   </div>
 
-  <!-- STRAVA -->
   <div class="strava-card">
     <div class="strava-head">
       <div class="strava-logo-box"><svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0 4 13.828h4.17"/></svg></div>
@@ -289,16 +288,14 @@ footer{text-align:center;padding:2rem 1rem;font-size:12px;color:var(--text3);bor
       <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0 4 13.828h4.17"/></svg>
       Connecter Strava &amp; envoyer l'activité
     </button>
-    <p class="tip" style="margin-top:10px;text-align:center"><span id='stravaHint'>Génère d'abord ton fichier pour activer ce bouton</span></p>
+    <p class="tip" style="margin-top:10px;text-align:center">Génère d'abord ton fichier pour activer ce bouton</p>
   </div>
 
-  <!-- FOOTER -->
   <footer>
     <p>Traitement 100% local — aucune donnée GPS ne quitte ton navigateur.</p>
     <p style="margin-top:12px;font-size:11px;color:var(--text3);line-height:1.7;max-width:480px;margin-left:auto;margin-right:auto">Stravalibi est un outil conçu pour les sportifs qui ont oublié de lancer leur montre lors d'une vraie activité. Il ne s'agit en aucun cas d'un outil destiné à générer de fausses performances ou à tromper qui que ce soit. Nous faisons confiance à nos utilisateurs pour en faire un usage honnête — parce que le sport, c'est avant tout une histoire avec soi-même.</p>
     <p style="margin-top:10px">Fait avec 🛋 pour ceux qui méritent leurs kudos.</p>
   </footer>
-
 </div>
 
 <script>
@@ -427,12 +424,12 @@ function generate(){
       }
       out.push('    </trkseg>','  </trk>','</gpx>');
       bar.style.width='100%';
-      const blob=new Blob([out.join('
-')],{type:'application/gpx+xml'}),url=URL.createObjectURL(blob),link=document.getElementById('dlLink');
+      const blob=new Blob([out.join('\n')],{type:'application/gpx+xml'}),url=URL.createObjectURL(blob),link=document.getElementById('dlLink');
       link.href=url;link.download=gpxData.name+'_stravalibi.gpx';link.classList.remove('hidden');
       const fmt=d=>d.toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+      document.getElementById('btnStrava').classList.remove('locked');
       showMsg(`✓ Alibi prêt ! Départ ${fmt(new Date(startMs))} → Arrivée ${fmt(new Date(startMs+totalS*1000))}`,false,true);
-      document.getElementById('btnStrava').classList.remove('locked');const sh=document.getElementById('stravaHint');if(sh)sh.style.display='none';
+      document.getElementById('btnStrava').disabled=false;
       window._lastGpxBlob=blob;
       btn.disabled=false;
     }catch(err){showMsg('Erreur : '+err.message,true);btn.disabled=false;bar.style.width='0';}
@@ -442,7 +439,6 @@ function generate(){
 function showMsg(t,err=false,ok=false){const el=document.getElementById('msg');el.textContent=t;el.className='msg'+(err?' err':ok?' ok':'');}
 
 function stravaConnect() {
-  if (document.getElementById('btnStrava').classList.contains('locked')) return;
   if (!gpxData) return;
 
   // Reconstruire le GPX depuis les données en mémoire
